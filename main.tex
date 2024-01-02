@@ -57,6 +57,11 @@
 % Please keep new commands to a minimum, and use \newcommand not \def to avoid
 % overwriting existing commands. Example:
 %\newcommand{\pcm}{\,cm$^{-2}$}	% per cm-squared
+\newcommand{\eep}{\ensuremath{\mathrm{EEP}}}
+\newcommand{\feh}{\ensuremath{\mathrm{[Fe/H]}}}
+\newcommand{\normal}{\mathcal{N}}
+\newcommand{\uniform}{\mathcal{U}}
+\renewcommand*{\vec}[1]{\boldsymbol{#1}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -113,6 +118,25 @@ Here is an example citation in text \citet{Lyttle.Davies.ea2021} and in parenthe
 
 \subsection{Hierarchical Bayesian model}
 \label{sec:hbm}
+
+\begin{equation}
+    p(\vec{\theta}, \phi \mid \vec{d}) \propto p(\vec{d} \mid \vec{\theta}) \, p(\vec{\theta} \mid \phi) \, p(\phi),
+\end{equation}
+
+\begin{equation}
+    \begin{split}
+        p(\theta_i \mid \phi) &= \normal(Y_i \mid a_Y + b_Y Z_i, \sigma_Y^2) \, \normal(\alpha_i \mid \mu_\alpha, \sigma_\alpha^2) \\
+        &\times p(\eep_i, M_i, \feh_i)
+    \end{split}
+\end{equation}
+
+\begin{equation}
+    \begin{split}
+        p(\phi) &= \normal(a_Y \mid 0.247, 0.001) \, \uniform(b_Y \mid 0.0, 3.0) \\
+        &\times \normal(\ln \sigma_Y \mid x.xx, x.xx) \, \uniform(\mu_\alpha \mid 1.5, 2.5) \\
+        &\times \normal(\ln \sigma_\alpha \mid x.xx, x.xx)
+    \end{split}
+\end{equation}
 
 \subsection{Stellar model emulator}
 \label{sec:emulator}
