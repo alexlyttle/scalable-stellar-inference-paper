@@ -49,6 +49,7 @@
 % Only include extra packages if you really need them. Avoid using amssymb if newtxmath is enabled, as these packages can cause conflicts. newtxmatch covers the same math symbols while producing a consistent Times New Roman font. Common packages are:
 \usepackage{graphicx}	% Including figure files
 \usepackage{amsmath}	% Advanced maths commands
+\usepackage{tikz}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -137,6 +138,11 @@ Here is an example citation in text \citet{Lyttle.Davies.ea2021} and in parenthe
         &\times \normal(\ln \sigma_\alpha \mid x.xx, x.xx)
     \end{split}
 \end{equation}
+
+\begin{figure}
+    \centering
+    \input{dag}
+\end{figure}
 
 \subsection{Stellar model emulator}
 \label{sec:emulator}
