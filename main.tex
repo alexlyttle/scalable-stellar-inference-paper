@@ -142,7 +142,7 @@ Here is an example citation in text \citet{Lyttle.Davies.ea2021} and in parenthe
 \begin{figure}
     \centering
     \input{dag}
-    \caption{A probabilistic directed acyclic graph (DAG) showing the relationship between parameters in the model. Parameters surrounded by a solid line are probabilistic and those surrounded by a dotted line are deterministic.}
+    \caption{A probabilistic directed acyclic graph showing the relationship between parameters in the model. Arrows show the direction of dependence. Parameters surrounded by a solid and dotted lines are probabilistic and deterministic respectively. Parameters shaded grey are observed and those shaded black are fixed. Dashed lines group parameters which are inputs to or outputs from other routines (e.g. the neural network). The blue and orange boxes group parameters which loop over \(i\) and \(\zeta\) respectively. Definitions of the parameters and their description are given in the text.}
 \end{figure}
 
 \subsection{Stellar model emulator}
