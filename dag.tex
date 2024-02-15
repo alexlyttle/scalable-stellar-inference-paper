@@ -1,10 +1,15 @@
-\begin{tikzpicture}[scale=1.33,every node/.style={ellipse, draw}]
+\begin{tikzpicture}[scale=1.33, line width=0.6pt, every node/.style={ellipse, draw, fill=white}, >=latex]
     % Hyperparameters
     \node (ay) at (0, 5) {$a_Y$};
     \node (by) at (1, 5) {$b_Y$};
     \node (sy) at (2, 5) {$\sigma_Y$};
     \node (ma) at (3, 5) {$\mu_\alpha$};
     \node (sa) at (4, 5) {$\sigma_\alpha$};
+
+    % Plate - Individual star
+    \draw[fill=CornflowerBlue!20, rounded corners] (-0.5, 1.5) rectangle (4.5, 4.5);
+    \node[draw=none, fill=none, rotate=90, above, align=left, anchor=south west] at (-0.5, 1.5) {Individual\\Star};
+    \node[draw=none, fill=none, above left, align=right] at (4.5, 1.5) {$i = 1, \dots, N_\mathrm{stars}$};
 
     % Input parameters
     \node (mi) at (0, 4) {$M_i$};
@@ -15,8 +20,8 @@
 
     % Output parameters
     \node (age) at (0, 3) {$t_i$};
-    \node [fill=black!33] (teff) at (1, 3) {$T_{\mathrm{eff}, i}$};
-    \node [fill=black!33] (lum) at (2, 3) {$L_i$} edge [<-] (teff);
+    \node [fill=black!25] (teff) at (1, 3) {$T_{\mathrm{eff}, i}$};
+    \node [fill=black!25] (lum) at (2, 3) {$L_i$} edge [<-] (teff);
     \node (rad) at (3, 3) {$R_i$} edge [->] (lum);
     \node (dnu) at (4, 3) {$\Delta\nu_i$};
 
@@ -24,4 +29,19 @@
     \foreach \x in {mi, yi, fehi, ai, eepi}
     \foreach \y in {age, teff, rad, dnu}
     \draw[->] (\x) -- (\y);
+
+    % Observational Uncertainty
+    \fill (0, 2) circle (1.5pt) edge [->] (teff) node[below, fill=none,draw=none] {$\sigma_{T_\mathrm{eff}, i}$};
+    \fill (2, 2) circle (1.5pt) edge [->] (lum) node[below, fill=none, draw=none] {$\sigma_{L, i}$};
+
+    % Plate - Emulator noise
+    \draw[fill=BurntOrange!20, rounded corners] (-0.5, 0.4) rectangle (1.5, 1.4);
+    \node[draw=none, fill=none, rotate=90, above, align=left, anchor=south west] at (-0.5, 0.4) {Emulator\\Error};
+    \node[draw=none, fill=none, above left, align=right] at (1.5, 0.4) {$j = 1, \dots, N_\mathrm{out}$};
+
+    % Emulator uncertainty
+    \node (sig) at (1, 0.9) {$\sigma_j$} edge [->] (teff) edge [->] (lum);
+    \fill (0, 0.9) circle (1.5pt) edge [->] (sig) node[above, fill=none, draw=none] (slum) {$\tau_j$};
+    \fill (2, 0.9) circle (1.5pt) edge [->] (sig) node[above, fill=none, draw=none] (slum) {$\nu$};
+
 \end{tikzpicture}
