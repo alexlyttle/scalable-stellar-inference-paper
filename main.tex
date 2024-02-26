@@ -51,7 +51,7 @@
 \usepackage{amsmath}	% Advanced maths commands
 \usepackage[dvipsnames,svgnames,x11names]{xcolor}
 \usepackage{tikz}
-\usetikzlibrary{graphs,shapes.geometric,patterns}
+\usetikzlibrary{graphs,shapes.geometric,patterns,decorations.pathreplacing}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -60,11 +60,15 @@
 % Please keep new commands to a minimum, and use \newcommand not \def to avoid
 % overwriting existing commands. Example:
 %\newcommand{\pcm}{\,cm$^{-2}$}	% per cm-squared
-\newcommand{\eep}{\ensuremath{\mathrm{EEP}}}
+\newcommand{\eep}{\ensuremath{s}}
 \newcommand{\feh}{\ensuremath{\mathrm{[Fe/H]}}}
+\newcommand{\mlt}[1][]{{\ensuremath{\alpha_{\mathrm{mlt} \ifx#1\empty \else , #1 \fi}}}}
+\newcommand{\teff}[1][]{{\ensuremath{T_{\mathrm{eff} \ifx#1\empty \else , #1 \fi}}}}
 \newcommand{\normal}{\mathcal{N}}
 \newcommand{\uniform}{\mathcal{U}}
+\newcommand{\studentT}{\mathcal{T}}
 \renewcommand*{\vec}[1]{\boldsymbol{#1}}
+\newcommand*{\mat}[1]{\boldsymbol{\mathsf{#1}}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -119,39 +123,119 @@ Here is an example citation in text \citet{Lyttle.Davies.ea2021} and in parenthe
 \section{Methods}
 \label{sec:methods}
 
+\subsection{Grid of stellar models}
+\label{sec:grid}
+
+\begin{itemize}
+    \item Describe Yaguang Li's grid
+    \item 
+\end{itemize}
+
+\subsection{Stellar model emulator}
+\label{sec:emulator}
+
+We evaluated the emulator on the test dataset by taking the difference between the predictions on \(x\), \(\tilde{y} = f(x)\) and \(y\). We plot the error, \(\delta = y - \tilde{y}\), for each outputs quantity in Figure \ref{fig:error}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\linewidth]{figures/error.png}
+    \caption{The error \(\delta = y - \tilde{y}\) on the emulator outputs evaluated on the test dataset.}
+    \label{fig:error}
+\end{figure}
+
 \subsection{Hierarchical Bayesian model}
 \label{sec:hbm}
+%
+\begin{equation}
+    p(\mat\Theta, \vec\phi \mid \mat{Z}) \propto p(\mat{Z} \mid \mat\Theta) \, p(\mat\Theta \mid \vec\phi) \, p(\vec\phi),
+\end{equation}
+%
+
+\subsubsection{Likelihood}
+
+We approximate the emulator error (\(\delta\)) across the test dataset with a multivariate student's t-distribution, \(\studentT(\delta \mid \nu_\delta, \mu_\delta, \mat\Sigma_\delta)\). This can be decomposed into a multivariate normal distribution with its covariance scaled by a gamma-distributed scale parameter \(\sigma^{-2}\).
+%
+\begin{equation}
+    \studentT(\vec\delta \mid \nu_\delta, \vec\mu_\delta, \mat\Sigma_\delta) = \Gamma(\sigma^{-2} \mid \nu_\delta/2, \nu_\delta/2) \, \normal(\vec\delta \mid \vec\mu_\delta, \sigma^2 \mat\Sigma_\delta),
+\end{equation}
+%
+We propagate this error to our model likelihood,
+%
+\begin{equation}
+    p(\vec z_i \mid \vec\theta_i) = \normal(\vec z_i \mid \vec\mu_i, \mat\Sigma_i)
+\end{equation}
+%
+where the observable quantities are a linear transformation of the emulator outputs,
+%
+\begin{align}
+    \vec\mu_i &= \mat A \, (\tilde{\vec y}_i + \vec\mu_\delta) + \vec b\\
+    \mat\Sigma_i &= \sigma_i^2 \, \mat{A} \, \mat{\Sigma}_\delta \, \mat{A}^{\mathsf{T}} + \sigma_{z,i}^2 \, \mat{I} \label{eq:covariance}
+\end{align}
+%
+and \(\mat A\) is a matrix converting the emulator output to observed quantities.
+
+In this work, we consider observing \(\teff[i]\) and \(L_i\). We let the observation noise be normally distributed with standard deviations of \(\sigma_{\teff} = 75 \, \mathrm{K}\) and \(\sigma_L / L = 0.01\). The emulator outputs logarithmic quantities, making the transformation from \(\tilde{\vec y}_i\) to \(\teff_i\) and \(L\) non-linear. However, in the above equations, we assumed a linear transformation. Since the observation noise is small, the logarithm of the observed quantities is approximately normally distributed. Therefore, we transform the observables and their standard deviations to logarithmic space and continue. TODO: consider just saying we observe the logarithm.
 
 \begin{equation}
-    p(\vec{\theta}, \phi \mid \vec{d}) \propto p(\vec{d} \mid \vec{\theta}) \, p(\vec{\theta} \mid \phi) \, p(\phi),
+    \mat A = 
+    \begin{bmatrix}
+        0, 1, 0, 0\\
+        0, 4, 2, 0
+    \end{bmatrix}
+    , \quad
+    \vec b =
+    \begin{bmatrix}
+        0\\
+        - 4 \log \teff[\odot]
+    \end{bmatrix}
 \end{equation}
+
+
+\subsubsection{Prior}
 
 \begin{equation}
     \begin{split}
-        p(\theta_i \mid \phi) &= \normal(Y_i \mid a_Y + b_Y Z_i, \sigma_Y^2) \, \normal(\alpha_i \mid \mu_\alpha, \sigma_\alpha^2) \\
+        p(\vec{\theta} \mid \vec\phi) = \sum_i \, &\normal(Y_i \mid \mu_Y, \sigma_Y^2) \, \normal(\mlt[i] \mid \mu_\alpha, \sigma_\alpha^2) \\
         &\times p(\eep_i, M_i, \feh_i)
     \end{split}
 \end{equation}
+%
+where,
+%
+\begin{align}
+    \mu_Y &= \frac{a_Y + f}{1 + f}, \\
+    f &= b_Y \left( 10^{\log({Z}/{X})} + 1 \right)^{-1}, \\
+    \log({Z}/{X}) &= - \left(\feh + \log({Z}/{X})_\odot\right).
+\end{align}
+%
 
+%
 \begin{equation}
     \begin{split}
-        p(\phi) &= \normal(a_Y \mid 0.247, 0.001) \, \uniform(b_Y \mid 0.0, 3.0) \\
-        &\times \normal(\ln \sigma_Y \mid x.xx, x.xx) \, \uniform(\mu_\alpha \mid 1.5, 2.5) \\
-        &\times \normal(\ln \sigma_\alpha \mid x.xx, x.xx)
+        p(\vec\phi) &= \normal(a_Y \mid 0.247, 0.001) \, \uniform(b_Y \mid 0.0, 3.0) \\
+        &\times \Gamma(\sigma_Y^{-2} \mid 3, 10^{-4}) \, \uniform(\mu_\alpha \mid 1.5, 2.5) \\
+        &\times \Gamma(\sigma_\alpha^{-2} \mid 3, 10^{-2})
     \end{split}
 \end{equation}
 
 \begin{figure}
     \centering
     \input{dag}
-    \caption{A probabilistic directed acyclic graph showing the relationship between parameters in the model. Arrows show the direction of dependence. Parameters surrounded by a solid and dotted lines are probabilistic and deterministic respectively. Parameters shaded grey are observed and those shaded black are fixed. Dashed lines group parameters which are inputs to or outputs from other routines (e.g. the neural network). The blue and orange boxes group parameters which loop over \(i\) and \(\zeta\) respectively. Definitions of the parameters and their description are given in the text.}
+    \caption{A probabilistic directed acyclic graph showing the relationship between parameters in the model. Arrows show the direction of dependence.
+    % Parameters surrounded by a solid and dotted lines are probabilistic and deterministic respectively.
+    Parameters shaded grey are observed and those represented by black dots are fixed. 
+    % Dashed lines group parameters which are inputs to or outputs from other routines (e.g. the neural network).
+    The blue box groups parameters which loop over \(i\). Definitions of the parameters and their description are given in the text.}
 \end{figure}
-
-\subsection{Stellar model emulator}
-\label{sec:emulator}
 
 \subsection{Synthetic stars}
 \label{sec:synth}
+
+\begin{itemize}
+    \item Truths from above model
+    \item Synthetic stars pulled from Yagaung Li's grid
+\end{itemize}
+
 
 \section{Results}
 \label{sec:results}
