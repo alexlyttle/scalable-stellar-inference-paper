@@ -8,40 +8,71 @@
 
     % Plate - Individual star
     \draw[fill=CornflowerBlue!20, rounded corners] (-0.5, 1.5) rectangle (4.5, 4.5);
-    \node[draw=none, fill=none, rotate=90, above, align=left, anchor=south west] at (-0.5, 1.5) {Individual\\Star};
+    % \draw[fill=JungleGreen!20, rounded corners] (-0.5, 1.5) rectangle (4.5, 4.5);
+    % \node[draw=none, fill=none, rotate=90, above, align=left, anchor=south west] at (-0.5, 1.5) {Individual\\Star};
     \node[draw=none, fill=none, above left, align=right] at (4.5, 1.5) {$i = 1, \dots, N_\mathrm{stars}$};
 
     % Input parameters
     \node (mi) at (0, 4) {$M_i$};
     \node (yi) at (1, 4) {$Y_i$} edge [<-] (ay) edge [<-] (by) edge [<-] (sy);
-    \node (fehi) at (2, 4) {$\mathrm{[Fe/H]}_i$} edge [->] (yi);
+    \node (fehi) at (2, 4) {$\feh_i$} edge [->] (yi);
     \node (ai) at (3, 4) {$\alpha_i$} edge [<-] (ma) edge [<-] (sa);
-    \node (eepi) at (4, 4) {$\mathrm{EEP}_i$};
+    \node (eepi) at (4, 4) {$\eep_i$};
 
     % Output parameters
-    \node (age) at (0, 3) {$t_i$};
-    \node [fill=black!25] (teff) at (1, 3) {$T_{\mathrm{eff}, i}$};
-    \node [fill=black!25] (lum) at (2, 3) {$L_i$} edge [<-] (teff);
-    \node (rad) at (3, 3) {$R_i$} edge [->] (lum);
-    \node (dnu) at (4, 3) {$\Delta\nu_i$};
+    % \node (age) at (0, 3) {$t_i$};
+    % \node [fill=black!25] (teff) at (1, 3) {$T_{\mathrm{eff}, i}$};
+    % \node [fill=black!25] (lum) at (2, 3) {$L_i$} edge [<-] (teff);
+    % \node (rad) at (3, 3) {$R_i$} edge [->] (lum);
+    % \node (dnu) at (4, 3) {$\Delta\nu_i$};
+    \node (age) at (0.2, 3) {$\log \tilde t_i$};
+    \node (teff) at (1.4, 3) {$\log \tilde T_{\mathrm{eff}, i}$};
+    \node (rad) at (2.6, 3) {$\log \tilde R_i$};
+    \node (dnu) at (3.8, 3) {$\log \Delta\tilde\nu_i$};
 
     % Connect neural network inputs and outputs
     \foreach \x in {mi, yi, fehi, ai, eepi}
     \foreach \y in {age, teff, rad, dnu}
     \draw[->] (\x) -- (\y);
 
-    % Observational Uncertainty
-    \fill (0, 2) circle (1.5pt) edge [->] (teff) node[below, fill=none,draw=none] {$\sigma_{T_\mathrm{eff}, i}$};
-    \fill (2, 2) circle (1.5pt) edge [->] (lum) node[below, fill=none, draw=none] {$\sigma_{L, i}$};
-
+    \node [fill=black!25] (obs) at (2, 2) {$\vec z_i$} edge [<-] (teff) edge [<-] (rad);
     % Plate - Emulator noise
-    \draw[fill=BurntOrange!20, rounded corners] (-0.5, 0.4) rectangle (1.5, 1.4);
-    \node[draw=none, fill=none, rotate=90, above, align=left, anchor=south west] at (-0.5, 0.4) {Emulator\\Error};
-    \node[draw=none, fill=none, above left, align=right] at (1.5, 0.4) {$j = 1, \dots, N_\mathrm{out}$};
+    % \draw[fill=BurntOrange!20, rounded corners] (-0.5, 0.4) rectangle (1.5, 1.4);
+    % \node[draw=none, fill=none, rotate=90, above, align=left, anchor=south west] at (-0.5, 0.4) {Emulator\\Error};
+    % \node[draw=none, fill=none, above left, align=right] at (1.5, 0.4) {$j = 1, \dots, N_\mathrm{out}$};
 
     % Emulator uncertainty
-    \node (sig) at (1, 0.9) {$\sigma_j$} edge [->] (teff) edge [->] (lum);
-    \fill (0, 0.9) circle (1.5pt) edge [->] (sig) node[above, fill=none, draw=none] (slum) {$\tau_j$};
-    \fill (2, 0.9) circle (1.5pt) edge [->] (sig) node[above, fill=none, draw=none] (slum) {$\nu$};
+    % \node (sig) at (1, 0.9) {$\sigma_j$} edge [->] (teff) edge [->] (lum);
+    % \fill (0, 0.9) circle (1.5pt) edge [->] (sig) node[above, fill=none, draw=none] (slum) {$\tau_j$};
+    % \fill (2, 0.9) circle (1.5pt) edge [->] (sig) node[above, fill=none, draw=none] (slum) {$\nu$};
+
+    % \node (sig) at (1, 1) {$u$} edge [->] (teff) edge [->] (lum);
+    % \fill (0, 1) circle (1.5pt) edge [->] (sig) node[above, fill=none, draw=none] (slum) {$\nu, \vec{\tau}$};
+
+    % \node (sig) at (1, 2) {$\Sigma_i$} edge [->] (teff) edge [->] (lum);
+
+    % \node (sig) at (1, 2) {$\mat\Sigma_i$} edge [->] (obs);
+
+    \node (sig) at (1, 2) {$\sigma_i$} edge [->] (obs);
+
+    % \fill (1, 1) circle (1.5pt) edge [->] (sig) node[right, fill=none, draw=none] (slum) {$\nu, \vec{\tau}$};
+
+    % Observational Uncertainty
+    % \fill (0, 2) circle (1.5pt) edge [->] (sig) node[below, fill=none,draw=none] {$\sigma_{T_\mathrm{eff}, i}$};
+    % \fill (2, 2) circle (1.5pt) edge [->] (sig) node[below, fill=none, draw=none] {$\sigma_{L, i}$};
+    
+    % \fill (0, 2) circle (1.5pt) edge [->] (sig) node[below, fill=none,draw=none] {$\sigma_{z, i}$};
+    % \fill (1, 1) circle (1.5pt) edge [->] (sig) node[below, fill=none,draw=none] {$\nu_\delta, \mat\Sigma_\delta$};
+    % \fill (2, 1) circle (1.5pt) edge [->] (obs) node[below, fill=none,draw=none] {$\vec\mu_\delta$};
+    
+    \fill (3, 2) circle (1.5pt) edge [->] (obs) node[above, fill=none,draw=none] {$\vec\sigma_{z, i}$};
+    \fill (2, 1) circle (1.5pt) edge [->] (obs) node[below, fill=none,draw=none] {$\nu_\delta, \vec\mu_\delta, \mat\Sigma_\delta, \mat A, \vec b$};
+
+    \draw [decorate,decoration={brace,amplitude=4pt}]
+    (4.66, 5.25) -- (4.66, 4.75) node[fill=none,draw=none,midway,right]{$\phi$};
+    \draw [decorate,decoration={brace,amplitude=4pt}]
+    (4.66, 4.25) -- (4.66, 3.75) node[fill=none,draw=none,midway,right]{$x_i$};
+    \draw [decorate,decoration={brace,amplitude=4pt}]
+    (4.66, 3.25) -- (4.66, 2.75) node[fill=none,draw=none,midway,right]{$\tilde{y}_i$};
 
 \end{tikzpicture}
