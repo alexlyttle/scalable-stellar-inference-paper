@@ -1,7 +1,7 @@
 \begin{tikzpicture}[scale=1.33, line width=0.6pt, every node/.style={ellipse, draw, fill=white}, >=latex]
     % Hyperparameters
-    \node (ay) at (0, 5) {$a_Y$};
-    \node (by) at (1, 5) {$b_Y$};
+    \node (ay) at (0, 5) {$\yp$};
+    \node (by) at (1, 5) {$\dydz$};
     \node (sy) at (2, 5) {$\sigma_Y$};
     \node (ma) at (3, 5) {$\mu_\alpha$};
     \node (sa) at (4, 5) {$\sigma_\alpha$};
@@ -10,7 +10,7 @@
     \draw[fill=CornflowerBlue!20, rounded corners] (-0.5, 1.5) rectangle (4.5, 4.5);
     % \draw[fill=JungleGreen!20, rounded corners] (-0.5, 1.5) rectangle (4.5, 4.5);
     % \node[draw=none, fill=none, rotate=90, above, align=left, anchor=south west] at (-0.5, 1.5) {Individual\\Star};
-    \node[draw=none, fill=none, above left, align=right] at (4.5, 1.5) {$i = 1, \dots, N_\mathrm{stars}$};
+    \node[draw=none, fill=none, above left, align=right] at (4.5, 1.5) {$i = 1, \dots, N_\star$};
 
     % Input parameters
     \node (mi) at (0, 4) {$M_i$};
@@ -35,7 +35,7 @@
     \foreach \y in {age, teff, rad, dnu}
     \draw[->] (\x) -- (\y);
 
-    \node [fill=black!25] (obs) at (2, 2) {$\vec z_i$} edge [<-] (teff) edge [<-] (rad);
+    \node [fill=black!25] (obs) at (2, 2) {$\log\teff[i], \log L_i$} edge [<-] (teff) edge [<-] (rad);
     % Plate - Emulator noise
     % \draw[fill=BurntOrange!20, rounded corners] (-0.5, 0.4) rectangle (1.5, 1.4);
     % \node[draw=none, fill=none, rotate=90, above, align=left, anchor=south west] at (-0.5, 0.4) {Emulator\\Error};
@@ -53,7 +53,7 @@
 
     % \node (sig) at (1, 2) {$\mat\Sigma_i$} edge [->] (obs);
 
-    \node (sig) at (1, 2) {$\sigma_i$} edge [->] (obs);
+    \node (sig) at (0.2, 2) {$\sigma_i$} edge [->] (obs);
 
     % \fill (1, 1) circle (1.5pt) edge [->] (sig) node[right, fill=none, draw=none] (slum) {$\nu, \vec{\tau}$};
 
@@ -65,14 +65,15 @@
     % \fill (1, 1) circle (1.5pt) edge [->] (sig) node[below, fill=none,draw=none] {$\nu_\delta, \mat\Sigma_\delta$};
     % \fill (2, 1) circle (1.5pt) edge [->] (obs) node[below, fill=none,draw=none] {$\vec\mu_\delta$};
     
-    \fill (3, 2) circle (1.5pt) edge [->] (obs) node[above, fill=none,draw=none] {$\vec\sigma_{z, i}$};
-    \fill (2, 1) circle (1.5pt) edge [->] (obs) node[below, fill=none,draw=none] {$\nu_\delta, \vec\mu_\delta, \mat\Sigma_\delta, \mat A, \vec b$};
+    \fill (3.8, 2) circle (1.5pt) edge [->] (obs) node[above, fill=none,draw=none] {$\sigma_{\teff, i}, \sigma_{L,i}$};
+    \fill (2, 1.25) circle (1.5pt) edge [->] (obs) node[below, fill=none,draw=none] {$\vec\mu_\delta, \mat\Sigma_\delta, \mat A, \vec b$};
+    \fill (0.2, 1.25) circle (1.5pt) edge [->] (sig) node[below, fill=none,draw=none] {$\nu_\delta$};
 
-    \draw [decorate,decoration={brace,amplitude=4pt}]
-    (4.66, 5.25) -- (4.66, 4.75) node[fill=none,draw=none,midway,right]{$\phi$};
-    \draw [decorate,decoration={brace,amplitude=4pt}]
-    (4.66, 4.25) -- (4.66, 3.75) node[fill=none,draw=none,midway,right]{$x_i$};
-    \draw [decorate,decoration={brace,amplitude=4pt}]
-    (4.66, 3.25) -- (4.66, 2.75) node[fill=none,draw=none,midway,right]{$\tilde{y}_i$};
+    % \draw [decorate,decoration={brace,amplitude=4pt}]
+    % (4.66, 5.25) -- (4.66, 4.75) node[fill=none,draw=none,midway,right]{$\vec\phi$};
+    % \draw [decorate,decoration={brace,amplitude=4pt}]
+    % (4.66, 4.25) -- (4.66, 3.75) node[fill=none,draw=none,midway,right]{$\inputs_i$};
+    % \draw [decorate,decoration={brace,amplitude=4pt}]
+    % (4.66, 3.25) -- (4.66, 2.75) node[fill=none,draw=none,midway,right]{$\pred_i$};
 
 \end{tikzpicture}
