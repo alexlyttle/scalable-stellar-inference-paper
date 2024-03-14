@@ -60,15 +60,34 @@
 % Please keep new commands to a minimum, and use \newcommand not \def to avoid
 % overwriting existing commands. Example:
 %\newcommand{\pcm}{\,cm$^{-2}$}	% per cm-squared
+
+% Distributions
+\newcommand{\normaldist}{\mathcal{N}}
+\newcommand{\uniformdist}{\mathcal{U}}
+\newcommand{\gammadist}{\Gamma}
+\newcommand{\tdist}{\mathcal{T}}
+
+\renewcommand*{\vec}[1]{\boldsymbol{#1}}
+\newcommand*{\mat}[1]{\boldsymbol{\mathsf{#1}}}
+\newcommand*{\transpose}{\mathsf{T}}
+
+% Model Parameters
+\newcommand{\obs}{{\vec{y}}}
+\newcommand{\inputs}{{\vec{x}}}
+\newcommand{\outputs}{{\vec{u}}}
+\newcommand{\pred}{{\tilde{\outputs}}}
+\newcommand{\error}{{\vec{\delta}}}
+
+\newcommand{\dydz}{\ensuremath{m_Y}}
+\newcommand{\yp}{\ensuremath{c_Y}}
+
 \newcommand{\eep}{\ensuremath{s}}
 \newcommand{\feh}{\ensuremath{\mathrm{[Fe/H]}}}
 \newcommand{\mlt}[1][]{{\ensuremath{\alpha_{\mathrm{mlt} \ifx#1\empty \else , #1 \fi}}}}
 \newcommand{\teff}[1][]{{\ensuremath{T_{\mathrm{eff} \ifx#1\empty \else , #1 \fi}}}}
-\newcommand{\normal}{\mathcal{N}}
-\newcommand{\uniform}{\mathcal{U}}
-\newcommand{\studentT}{\mathcal{T}}
-\renewcommand*{\vec}[1]{\boldsymbol{#1}}
-\newcommand*{\mat}[1]{\boldsymbol{\mathsf{#1}}}
+
+% Units
+\newcommand{\solarmass}{\ensuremath{\mathrm{M}_\odot}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -83,10 +102,15 @@
 \author[A. J. Lyttle et al.]{
 Alexander J. Lyttle,$^{1}$\thanks{E-mail: a.j.lyttle@bham.ac.uk (AJL)}
 Guy R. Davies,$^{1}$
-and TBC
+Owen J. Scutt,$^{1}$
+Yaguang Li,$^{2}$
+Amalie Stokholm,$^{1}$
+and Tanda Li$^{3}$
 \\
 % List of institutions
-$^{1}$School of Physics and Astronomy, University of Birmingham, Birmingham B15 2TT, UK
+$^{1}$School of Physics and Astronomy, University of Birmingham, Birmingham B15 2TT, UK\\
+$^{2}$Hawaii\\
+$^{3}$Beijing
 }
 
 % These dates will be filled out by the publisher
@@ -118,7 +142,17 @@ methods: statistical -- stars: fundamental parameters -- stars: low-mass
 
 \section{Introduction}
 
-Here is an example citation in text \citet{Lyttle.Davies.ea2021} and in parentheses \citep{Lyttle.Davies.ea2021}.
+Recent missions like \emph{Gaia} \citep{GaiaCollaboration.Prusti.ea2016,GaiaCollaboration.Brown.ea2018} \emph{Kepler} \citep{Borucki.Koch.ea2010} and TESS \citep{Ricker.Winn.ea2015} have proven the need for determining stellar ages, masses, and radii on a large scale. Precisely characterizing these parameters with reliable uncertainties is crucial when using them to infer the evolution history of the Milky Way and the distribution of exoplanetary systems. Particularly, FGK dwarfs are some of the most common stars in the galaxy and are of interest to those searching for a solar-system analogue. For these stars, the high-cadence, long-baseline photometry of \emph{Kepler} and TESS has also led to an increase in precise stellar parameter inference using asteroseismology. For solar-like oscillators, we have determined ages, masses and radii from stellar models with uncertainties of 20, 4, and 2 per cent respectively \citep[citation needed][]{}. However, determining these parameters can be slow and with more precise data systematic uncertainties begin to dominate.
+
+% The high-cadence, long-baseline photometry from these missions needed for detecting exoplanets is congruent with the needs of detecting stellar oscillations. Particularly, asteroseismology of solar-like oscillators has lead to improved stellar parameters through scaling relations and comparison with models of stellar evolution.
+
+One-dimensional stellar evolutionary models are slow, taking up to hours to run for a particular set of input parameters. Typical inputs include the stellar mass and initial chemical abundances. Speeding up the evaluation of these stellar models would allow fast, scalable inference on thousands to millions of stars. Currently, some tools use interpolation... Recent work has shown how machine learning methods can approximate stellar models. For example, \citet{Lyttle.Davies.ea2021} and \citet{Scutt.Murphy.ea2023} used neural networks to emulate stellar models with asteroseismology, and \citet{Maltsev.Schneider.ea2023} compared deep learning with hierarchical nearest neighbour interpolation across the wider HR diagram.
+
+Many stellar model inputs are often calibrated to the Sun. For example, the mixing-length theory (parameterized by \(\mlt\)) approximates convective energy transport in 1D stellar models. While we can calibrate this to the Sun, comparison to 3D hydrodynamical models has shown that \(\mlt\) can very by approximately \(\pm 0.3\) times the solar value \citep[e.g.][]{Magic.Weiss.ea2015}. 
+
+Previously, we demonstrated that hierarchical Bayesian models (HBMs) can improve the uncertainty on inferred stellar parameters while marginalizing over uncertainty in poorly constrained parameters. \citet{Lyttle.Davies.ea2021} built and applied an HBM to a sample of \(N_\star \approx 80\) dwarf and subgiant solar-like oscillators in the mass range \(0.8 < M/\solarmass < 1.2\). Initial helium abundance (\(Y\)) is difficult to estimate for these stars because helium does not ionize in their atmospheres. \citet{Lyttle.Davies.ea2021} pooled \(Y\) and \(\mlt\) together by describing them with population distributions. TODO: what effect do these have on inferred parameters?
+
+We expect the maximum uncertainty reduction on pooled parameters to scale with \(\sqrt{N_\star}\). Larger \(N_\star\) will also allow us to test more complex enrichment laws and \(\mlt\) distributions. In this work, we import and test the scalability of the HBM framework from \citet{Lyttle.Davies.ea2021}. Sampling HBMs becomes increasingly expensive with increasing \(N_\star\). Using accelerated linear algebra and GPU hardware, we aim to run our model for up to \(N_\star \sim 10000\) in no more than a few days.
 
 \section{Methods}
 \label{sec:methods}
@@ -134,42 +168,83 @@ Here is an example citation in text \citet{Lyttle.Davies.ea2021} and in parenthe
 \subsection{Stellar model emulator}
 \label{sec:emulator}
 
-We evaluated the emulator on the test dataset by taking the difference between the predictions on \(x\), \(\tilde{y} = f(x)\) and \(y\). We plot the error, \(\delta = y - \tilde{y}\), for each outputs quantity in Figure \ref{fig:error}.
+The dataset contains input-outputs pairs, \((\inputs, \outputs)_j\). The inputs have size \(d\) and the outputs have size \(m\). We reserve 15 per cent of the dataset for evaluating the accuracy of the emulator, and call the remainder the training dataset.
+
+We constructed the neural network with \(h\) layers each with an associated matrix of weights, \(\mat W\). The weights for the first layer, \(\mat W_1\), is a \((d + 1) \times (q + 1)\) matrix where \(q\) is the number of `neurons' in the layer. The input vector, \(\inputs\) is padded with 1 to incorporate the `bias' weight (i.e. the offset in a linear equation). Then, the input vector is multiplied by the weights and passed through a non-linear transformation called the `activation function', \(f\). The subsequent layers through to \(h-1\) have the same activation function, number of neurons, and associated weights matrices with shape \((q + 1) \times (q + 1)\). The final layer has a linear activation function and a weights matrix \(\mat W_h\) with shape \((q + 1) \times m\). 
+%
+% \begin{equation}
+%     \pred_j = \mat W_h \cdot f ( \mat W_{h-1} \dots f ( \mat W_2 \cdot f ( \mat W_1 \cdot [\vec x_j, 1] ) ) ) 
+% \end{equation}
+%
+%
+\begin{align}
+    \vec x_j &\equiv 
+    \begin{bmatrix}
+        x_{j\,1} & x_{j\,2} & \dots & x_{jd}
+    \end{bmatrix}\\
+    \pred_j &= \mat W_h \cdot f ( \dots f ( \mat W_2 \cdot f ( \mat W_1 \cdot
+    \begin{bmatrix}
+        \vec x_j & 1
+    \end{bmatrix} 
+    ) ) ),\\
+    \pred_j &\equiv
+    \begin{bmatrix}
+        u_{j\,1} & u_{j\,2} & \dots & u_{jm}
+    \end{bmatrix}
+\end{align}
+%
+
+We used the mean squared error as the loss metric for optimization,
+%
+\begin{equation}
+    \mathbb{L} = \frac{1}{nm} \sum_{j=1}^{n} \sum_{k=1}^{m} (u_{jk} - \tilde u_{jk})^2,
+\end{equation} 
+
+We evaluated the emulator on the test dataset by taking the difference between the predictions on \(\inputs\), \(\pred = f(\inputs)\) and \(\outputs\). We plot the error, \(\error_j = \outputs_j - \pred_j\), for each output quantity in Figure \ref{fig:error}.
 
 \begin{figure}
     \centering
     \includegraphics[width=1.0\linewidth]{figures/error.png}
-    \caption{The error \(\delta = y - \tilde{y}\) on the emulator outputs evaluated on the test dataset.}
+    \caption{The error \(\vec\error = \outputs - \pred\) on the emulator outputs evaluated on the test dataset.}
     \label{fig:error}
 \end{figure}
 
-\subsection{Hierarchical Bayesian model}
-\label{sec:hbm}
+\subsection{Single Star Model}
+
 %
 \begin{equation}
-    p(\mat\Theta, \vec\phi \mid \mat{Z}) \propto p(\mat{Z} \mid \mat\Theta) \, p(\mat\Theta \mid \vec\phi) \, p(\vec\phi),
+    p(\vec \theta_i \mid \obs_i) \propto p(\obs_i \mid \vec \theta_i) \, p(\vec\theta_i),
+\end{equation}
+%
+
+\subsection{Hierarchical Bayesian model}
+\label{sec:hbm}
+
+%
+\begin{equation}
+    p(\vec \theta_i, \vec \phi \mid \obs_i) \propto p(\obs_i \mid \vec \theta_i) \, p(\vec\theta_i \mid \vec\phi) \, p(\vec\phi),
 \end{equation}
 %
 
 \subsubsection{Likelihood}
 
-We approximate the emulator error (\(\delta\)) across the test dataset with a multivariate student's t-distribution, \(\studentT(\delta \mid \nu_\delta, \mu_\delta, \mat\Sigma_\delta)\). This can be decomposed into a multivariate normal distribution with its covariance scaled by a gamma-distributed scale parameter \(\sigma^{-2}\).
+We approximate the emulator error (\(\delta\)) across the test dataset with a multivariate student's t-distribution, \(\tdist(\delta \mid \nu_\delta, \vec\mu_\delta, \mat\Sigma_\delta)\). This can be decomposed into a multivariate normal distribution with its covariance scaled by a gamma-distributed scale parameter \(\sigma^{-2}\).
 %
 \begin{equation}
-    \studentT(\vec\delta \mid \nu_\delta, \vec\mu_\delta, \mat\Sigma_\delta) = \Gamma(\sigma^{-2} \mid \nu_\delta/2, \nu_\delta/2) \, \normal(\vec\delta \mid \vec\mu_\delta, \sigma^2 \mat\Sigma_\delta),
+    p(\error_i \mid \nu_\delta, \vec\mu_\delta, \mat\Sigma_\delta) = \gammadist(\sigma_i^{-2} \mid \frac{\nu_\delta}{2}, \frac{\nu_\delta}{2}) \, \normaldist(\error_i \mid \vec\mu_\delta, \sigma_i^2 \mat\Sigma_\delta),
 \end{equation}
 %
 We propagate this error to our model likelihood,
 %
 \begin{equation}
-    p(\vec z_i \mid \vec\theta_i) = \normal(\vec z_i \mid \vec\mu_i, \mat\Sigma_i)
+    p(\obs_i \mid \vec\theta_i) = \normaldist(\obs_i \mid \vec\mu_i, \mat\Sigma_i)
 \end{equation}
 %
 where the observable quantities are a linear transformation of the emulator outputs,
 %
 \begin{align}
-    \vec\mu_i &= \mat A \, (\tilde{\vec y}_i + \vec\mu_\delta) + \vec b\\
-    \mat\Sigma_i &= \sigma_i^2 \, \mat{A} \, \mat{\Sigma}_\delta \, \mat{A}^{\mathsf{T}} + \sigma_{z,i}^2 \, \mat{I} \label{eq:covariance}
+    \vec\mu_i &= \mat A \, (\pred_i + \vec\mu_\delta) + \vec b\\
+    \mat\Sigma_i &= \sigma_i^2 \, \mat{A} \, \mat{\Sigma}_\delta \, \mat{A}^{\transpose} + \sigma_{y,i}^2 \, \mat{I} \label{eq:covariance}
 \end{align}
 %
 and \(\mat A\) is a matrix converting the emulator output to observed quantities.
@@ -179,8 +254,8 @@ In this work, we consider observing \(\teff[i]\) and \(L_i\). We let the observa
 \begin{equation}
     \mat A = 
     \begin{bmatrix}
-        0, 1, 0, 0\\
-        0, 4, 2, 0
+        0 & 1 & 0 & 0\\
+        0 & 4 & 2 & 0
     \end{bmatrix}
     , \quad
     \vec b =
@@ -195,7 +270,7 @@ In this work, we consider observing \(\teff[i]\) and \(L_i\). We let the observa
 
 \begin{equation}
     \begin{split}
-        p(\vec{\theta} \mid \vec\phi) = \sum_i \, &\normal(Y_i \mid \mu_Y, \sigma_Y^2) \, \normal(\mlt[i] \mid \mu_\alpha, \sigma_\alpha^2) \\
+        p(\vec{\theta} \mid \vec\phi) = \sum_i \, &\normaldist(Y_i \mid \mu_Y, \sigma_Y^2) \, \normaldist(\mlt[i] \mid \mu_\alpha, \sigma_\alpha^2) \\
         &\times p(\eep_i, M_i, \feh_i)
     \end{split}
 \end{equation}
@@ -203,18 +278,19 @@ In this work, we consider observing \(\teff[i]\) and \(L_i\). We let the observa
 where,
 %
 \begin{align}
-    \mu_Y &= \frac{a_Y + f}{1 + f}, \\
-    f &= b_Y \left( 10^{\log({Z}/{X})} + 1 \right)^{-1}, \\
-    \log({Z}/{X}) &= - \left(\feh + \log({Z}/{X})_\odot\right).
+    \mu_Y &= \frac{\yp + f}{1 + f}, \\
+    f &= \frac{\dydz}{Z / X + 1}, \\
+    \log({Z}/{X}) &= - \feh - \log({Z}/{X})_\odot,
 \end{align}
 %
+where \((Z/X)_\odot = 0.0181\).
 
 %
 \begin{equation}
     \begin{split}
-        p(\vec\phi) &= \normal(a_Y \mid 0.247, 0.001) \, \uniform(b_Y \mid 0.0, 3.0) \\
-        &\times \Gamma(\sigma_Y^{-2} \mid 3, 10^{-4}) \, \uniform(\mu_\alpha \mid 1.5, 2.5) \\
-        &\times \Gamma(\sigma_\alpha^{-2} \mid 3, 10^{-2})
+        p(\vec\phi) &= \normaldist(\yp \mid 0.247, 0.001) \, \uniformdist(\dydz \mid 0.0, 3.0) \\
+        &\times \gammadist(\sigma_Y^{-2} \mid 3, 10^{-4}) \, \uniformdist(\mu_\alpha \mid 1.5, 2.5) \\
+        &\times \gammadist(\sigma_\alpha^{-2} \mid 3, 10^{-2})
     \end{split}
 \end{equation}
 
@@ -225,7 +301,19 @@ where,
     % Parameters surrounded by a solid and dotted lines are probabilistic and deterministic respectively.
     Parameters shaded grey are observed and those represented by black dots are fixed. 
     % Dashed lines group parameters which are inputs to or outputs from other routines (e.g. the neural network).
-    The blue box groups parameters which loop over \(i\). Definitions of the parameters and their description are given in the text.}
+    The blue box groups parameters which loop over \(i\). Definitions of the parameters and their description are given in the text.
+    }
+\end{figure}
+
+\begin{figure}
+    \centering
+    \input{dag-simple}
+    \caption{A probabilistic directed acyclic graph showing the relationship between parameters in the model. Arrows show the direction of dependence.
+    % Parameters surrounded by a solid and dotted lines are probabilistic and deterministic respectively.
+    Parameters shaded grey are observed and those represented by black dots are fixed. 
+    % Dashed lines group parameters which are inputs to or outputs from other routines (e.g. the neural network).
+    The blue box groups parameters which loop over \(i\). Definitions of the parameters and their description are given in the text.
+    }
 \end{figure}
 
 \subsection{Synthetic stars}
