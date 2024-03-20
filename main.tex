@@ -160,17 +160,16 @@ We expect the maximum uncertainty reduction on pooled parameters to scale with \
 \subsection{Grid of stellar models}
 \label{sec:grid}
 
-\begin{itemize}
-    \item Describe Yaguang Li's grid
-    \item 
-\end{itemize}
-
 \subsection{Stellar model emulator}
 \label{sec:emulator}
 
-The dataset contains input-outputs pairs, \((\inputs, \outputs)_j\). The inputs have size \(d\) and the outputs have size \(m\). We reserve 15 per cent of the dataset for evaluating the accuracy of the emulator, and call the remainder the training dataset.
+Following a similar approach to \citet{Lyttle.Davies.ea2021}, we created a stellar model emulator by optimizing the weights of a neural network (ANN) to approximate the grid of stellar models. In this section, we describe the mathematics of the ANN and our optimization method.
 
-We constructed the neural network with \(h\) layers each with an associated matrix of weights, \(\mat W\). The weights for the first layer, \(\mat W_1\), is a \((d + 1) \times (q + 1)\) matrix where \(q\) is the number of `neurons' in the layer. The input vector, \(\inputs\) is padded with 1 to incorporate the `bias' weight (i.e. the offset in a linear equation). Then, the input vector is multiplied by the weights and passed through a non-linear transformation called the `activation function', \(f\). The subsequent layers through to \(h-1\) have the same activation function, number of neurons, and associated weights matrices with shape \((q + 1) \times (q + 1)\). The final layer has a linear activation function and a weights matrix \(\mat W_h\) with shape \((q + 1) \times m\). 
+Our dataset contains input-outputs pairs, \(\{\inputs, \outputs\}_j\). The inputs have size \(d\) and the outputs have size \(m\). We chose our inputs to be \(\inputs_j = [M_j, Y_j, \feh_j, \mlt[j], \eep_j]\) and outputs to be \(\outputs_j = [\log t_j, \log \teff[j], \log R_j, \log \Delta\nu_j]\).
+
+We reserve 15 per cent of the dataset for evaluating the accuracy of the emulator, and call the remainder the training dataset.
+
+We constructed the ANN with \(h\) layers each with an associated matrix of weights, \(\mat W\). The weights for the first layer, \(\mat W_1\), is a \((d + 1) \times (q + 1)\) matrix where \(q\) is the number of `neurons' in the layer. The input vector, \(\inputs\) is padded with 1 to incorporate the `bias' weight (i.e. the offset in a linear equation). Then, the input vector is multiplied by the weights and passed through a non-linear transformation called the `activation function', \(f\). The subsequent layers through to \(h-1\) have the same activation function, number of neurons, and associated weights matrices with shape \((q + 1) \times (q + 1)\). The final layer has a linear activation function and a weights matrix \(\mat W_h\) with shape \((q + 1) \times m\). 
 %
 % \begin{equation}
 %     \pred_j = \mat W_h \cdot f ( \mat W_{h-1} \dots f ( \mat W_2 \cdot f ( \mat W_1 \cdot [\vec x_j, 1] ) ) ) 
@@ -209,14 +208,6 @@ We evaluated the emulator on the test dataset by taking the difference between t
     \label{fig:error}
 \end{figure}
 
-\subsection{Single Star Model}
-
-%
-\begin{equation}
-    p(\vec \theta_i \mid \obs_i) \propto p(\obs_i \mid \vec \theta_i) \, p(\vec\theta_i),
-\end{equation}
-%
-
 \subsection{Hierarchical Bayesian model}
 \label{sec:hbm}
 
@@ -249,19 +240,21 @@ where the observable quantities are a linear transformation of the emulator outp
 %
 and \(\mat A\) is a matrix converting the emulator output to observed quantities.
 
-In this work, we consider observing \(\teff[i]\) and \(L_i\). We let the observation noise be normally distributed with standard deviations of \(\sigma_{\teff} = 75 \, \mathrm{K}\) and \(\sigma_L / L = 0.01\). The emulator outputs logarithmic quantities, making the transformation from \(\tilde{\vec y}_i\) to \(\teff_i\) and \(L\) non-linear. However, in the above equations, we assumed a linear transformation. Since the observation noise is small, the logarithm of the observed quantities is approximately normally distributed. Therefore, we transform the observables and their standard deviations to logarithmic space and continue. TODO: consider just saying we observe the logarithm.
+In this work, we consider observing \(\teff[i]\), \(L_i\), and \(\Delta\nu\) with uncertainties of 2 per cent, 2 per cent, and 1 per cent respectively. In other words, we assume the likelihood to be normally distributed centred on the observed values and scaled by their uncertainties. However, the emulator outputs logarithmic quantities, making the transformation from \(\pred_i\) to observables non-linear. Since the observation noise is small, the logarithm of the observed quantities is also approximately normally distributed. Therefore, we transform the observables and their standard deviations to logarithmic space and continue. In other words, we observe \(\obs_i = [\log\teff[i], \log L_i, \log\Delta\nu_i]\) with uncertainty \(\sigma_{y, i} \approx [0.02, 0.02, 0.01] / \ln(10)\).
 
 \begin{equation}
     \mat A = 
     \begin{bmatrix}
         0 & 1 & 0 & 0\\
-        0 & 4 & 2 & 0
+        0 & 4 & 2 & 0\\
+        0 & 0 & 0 & 1
     \end{bmatrix}
     , \quad
     \vec b =
     \begin{bmatrix}
         0\\
-        - 4 \log \teff[\odot]
+        - 4 \log \teff[\odot]\\
+        0
     \end{bmatrix}
 \end{equation}
 
