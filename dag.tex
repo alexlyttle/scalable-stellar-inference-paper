@@ -35,7 +35,7 @@
     \foreach \y in {age, teff, rad, dnu}
     \draw[->] (\x) -- (\y);
 
-    \node [fill=black!25] (obs) at (2, 2) {$\log\teff[i], \log L_i$} edge [<-] (teff) edge [<-] (rad);
+    \node [fill=black!25] (obs) at (2, 2) {$\log(\teff[i], L_i, \Delta\nu)$} edge [<-] (teff) edge [<-] (rad) edge [<-] (dnu);
     % Plate - Emulator noise
     % \draw[fill=BurntOrange!20, rounded corners] (-0.5, 0.4) rectangle (1.5, 1.4);
     % \node[draw=none, fill=none, rotate=90, above, align=left, anchor=south west] at (-0.5, 0.4) {Emulator\\Error};
@@ -65,7 +65,7 @@
     % \fill (1, 1) circle (1.5pt) edge [->] (sig) node[below, fill=none,draw=none] {$\nu_\delta, \mat\Sigma_\delta$};
     % \fill (2, 1) circle (1.5pt) edge [->] (obs) node[below, fill=none,draw=none] {$\vec\mu_\delta$};
     
-    \fill (3.8, 2) circle (1.5pt) edge [->] (obs) node[above, fill=none,draw=none] {$\sigma_{\teff, i}, \sigma_{L,i}$};
+    \fill (3.8, 2) circle (1.5pt) edge [->] (obs) node[above, fill=none,draw=none] {$\vec\sigma_{y, i}$};
     \fill (2, 1.25) circle (1.5pt) edge [->] (obs) node[below, fill=none,draw=none] {$\vec\mu_\delta, \mat\Sigma_\delta, \mat A, \vec b$};
     \fill (0.2, 1.25) circle (1.5pt) edge [->] (sig) node[below, fill=none,draw=none] {$\nu_\delta$};
 
