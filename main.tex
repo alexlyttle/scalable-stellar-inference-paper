@@ -72,11 +72,11 @@
 \newcommand*{\transpose}{\mathsf{T}}
 
 % Model Parameters
-\newcommand{\obs}{{\vec{y}}}
-\newcommand{\inputs}{{\vec{x}}}
-\newcommand{\outputs}{{\vec{u}}}
+\newcommand{\obs}{{y}}
+\newcommand{\inputs}{{x}}
+\newcommand{\outputs}{{u}}
 \newcommand{\pred}{{\tilde{\outputs}}}
-\newcommand{\error}{{\vec{\delta}}}
+\newcommand{\error}{{\delta}}
 
 \newcommand{\dydz}{\ensuremath{m_Y}}
 \newcommand{\yp}{\ensuremath{c_Y}}
@@ -157,54 +157,52 @@ We expect the maximum uncertainty reduction on pooled parameters to scale with \
 \section{Methods}
 \label{sec:methods}
 
-\subsection{Grid of stellar models}
+\subsection{Stellar model dataset}
 \label{sec:grid}
 
 \subsection{Stellar model emulator}
 \label{sec:emulator}
 
-Following a similar approach to \citet{Lyttle.Davies.ea2021}, we created a stellar model emulator by optimizing the weights of a neural network (ANN) to approximate the grid of stellar models. In this section, we describe the mathematics of the ANN and our optimization method.
+Following a similar approach to \citet{Lyttle.Davies.ea2021}, we created a stellar model emulator by optimizing the weights of a neural network (ANN) to approximate the stellar model dataset. In this section, we describe the mathematics of the ANN and our optimization method.
 
-Our dataset contains input-outputs pairs, \(\{\inputs, \outputs\}_j\). The inputs have size \(d\) and the outputs have size \(m\). We chose our inputs to be \(\inputs_j = [M_j, Y_j, \feh_j, \mlt[j], \eep_j]\) and outputs to be \(\outputs_j = [\log t_j, \log \teff[j], \log R_j, \log \Delta\nu_j]\).
+Our dataset contains input-outputs pairs, \(\{\vec\inputs, \vec\outputs\}_i\) which we used to train the ANN. The \(i\)-th input has size \(N_\mathrm{in}\) and \(i\)-th output has size \(N_\mathrm{out}\). We chose our input parameters (or features) to be \(\vec\inputs_i = [\eep_i, M_i, \feh_i, Y_i, \mlt[i]]\) to cover each independent dimension of the dataset. Our output parameters were \(\vec\outputs_i = [\log t_i, \log \teff[i], \log R_i, \log \Delta\nu_i]\) from which observable quantities can be derived. We output the age of the star because our ANN takes the evolutionary phase parameter \(\eep_i\) as an input. We found having age as an input can make the ANN perform more poorly in areas where the star evolves relatively quickly, such as the sub-giant and red giant phases. To test the ANN accuracy, we reserved 20 per cent of the stellar model dataset used the remaining training dataset to optimize the ANN architecture and weights.
 
-We reserve 15 per cent of the dataset for evaluating the accuracy of the emulator, and call the remainder the training dataset.
+The emulator, \(\vec\pred = f_{\mathsf{W}}(\vec\inputs)\), makes predictions for \(\vec\outputs\) given a set of weights \(\mat W\). We constructed the ANN with \(N_\mathrm{lay}\) layers each with an associated matrix of weights, \(\mat W\). The weights for the first layer, \(\mat W_1\), is a \((N_\mathrm{in} + 1) \times (N_\mathrm{neu} + 1)\) matrix where \(N_\mathrm{neu}\) is the number of `neurons' in the layer. We padded the input vector with 1 to incorporate the `bias' weight (i.e. the offset in a linear equation). Then, we multiplied the input vector by the weights and passed it through a non-linear transformation called the `activation function', \(\eta\). We give the subsequent layers through to \(N_\mathrm{lay}-1\) the same activation function, number of neurons, and associated weights matrices with shape \((N_\mathrm{neu} + 1) \times (N_\mathrm{neu} + 1)\). Finally, we give the last layer a linear activation function and weights matrix \(\mat W_H\) with shape \((N_\mathrm{neu} + 1) \times N_\mathrm{out}\).
 
-We constructed the ANN with \(h\) layers each with an associated matrix of weights, \(\mat W\). The weights for the first layer, \(\mat W_1\), is a \((d + 1) \times (q + 1)\) matrix where \(q\) is the number of `neurons' in the layer. The input vector, \(\inputs\) is padded with 1 to incorporate the `bias' weight (i.e. the offset in a linear equation). Then, the input vector is multiplied by the weights and passed through a non-linear transformation called the `activation function', \(f\). The subsequent layers through to \(h-1\) have the same activation function, number of neurons, and associated weights matrices with shape \((q + 1) \times (q + 1)\). The final layer has a linear activation function and a weights matrix \(\mat W_h\) with shape \((q + 1) \times m\). 
-%
-% \begin{equation}
-%     \pred_j = \mat W_h \cdot f ( \mat W_{h-1} \dots f ( \mat W_2 \cdot f ( \mat W_1 \cdot [\vec x_j, 1] ) ) ) 
-% \end{equation}
-%
+Our dataset span a variety of numerical ranges. For example, \(s \in [0, 1]\) but \(M \in [0.7, 2.3]\). An ANN will train more efficiently when the inputs and outputs are scaled to be approximately between -1 and 1. Therefore, we add a normalization layer to the start and a rescaling layer to the end of the ANN. The normalization layer scales the inputs by the mean (\(\overline{\vec\inputs}\)) and standard deviation (\(\vec s_{\inputs}\)) of the training dataset inputs, \(\vec\inputs\). Inversely, the final layer rescales the outputs by the mean  (\(\overline{\vec\outputs}\)) and standard deviation (\(\vec s_{\outputs}\)) of the training dataset outputs, \(\vec\outputs\).
+
+We define a single prediction from the emulator, \(\vec\pred_i = f_{\mat W}(\vec\inputs_i)\), as,
 %
 \begin{align}
-    \vec x_j &\equiv 
-    \begin{bmatrix}
-        x_{j\,1} & x_{j\,2} & \dots & x_{jd}
-    \end{bmatrix}\\
-    \pred_j &= \mat W_h \cdot f ( \dots f ( \mat W_2 \cdot f ( \mat W_1 \cdot
-    \begin{bmatrix}
-        \vec x_j & 1
-    \end{bmatrix} 
-    ) ) ),\\
-    \pred_j &\equiv
-    \begin{bmatrix}
-        u_{j\,1} & u_{j\,2} & \dots & u_{jm}
-    \end{bmatrix}
+    z_{ij} &= \frac{\inputs_{ij} - \overline{\inputs}_j}{s_{\inputs,j}}, \label{eq:normalize}\\
+    \vec d_i &= \mat W_h \cdot \eta ( \dots \eta ( \mat W_2 \cdot \eta ( \mat W_1 \cdot
+        [\vec z_i, 1]
+    ) ) ), \label{eq:ann}\\
+    \pred_{ik} &= \overline{\outputs}_k + s_{\outputs,k} \, d_{ik}, \label{eq:rescale}
 \end{align}
 %
+where \(j = 1, \dots, N_\mathrm{in}\) and \(k = 1, \dots, N_\mathrm{out}\). In Equation \ref{eq:normalize}, we normalize the inputs to have a mean of 0 and standard deviation of 1. Then, we pass the scaled inputs to the ANN in Equation \ref{eq:ann} comprising \(N_\mathrm{lay}\) layers. Finally, we rescale the outputs to get a prediction for \(\vec\outputs\) in Equation \ref{eq:rescale}.
 
-We used the mean squared error as the loss metric for optimization,
+We used the mean squared error as the loss metric to be minimized during optimization. Additionally, we applied L2 regularization to the weights of each layer. The resulting loss for a given batch of input-output pairs was,
 %
 \begin{equation}
-    \mathbb{L} = \frac{1}{nm} \sum_{j=1}^{n} \sum_{k=1}^{m} (u_{jk} - \tilde u_{jk})^2,
+    \mathbb{L} = (N_\mathrm{bat}N_\mathrm{out})^{-1} \sum_{i=1}^{N_\mathrm{bat}} \| \vec\outputs_i - \vec\pred_i \|_2^2 + \lambda \sum_{l=1}^{N_\mathrm{lay}} \| \mat W_l \|_2^2,
 \end{equation} 
+%
+where \(N_\mathrm{bat}\) is the batch size and \(\lambda\) is the L2 normalization constant. We chose the Adam optimizer \citep{Kingma.Ba2014} with decay rates \(\beta_1=0.9\) and \(\beta_2 = 0.999\), and learning rate (\(\ell\)) for which we tried several values.
 
-We evaluated the emulator on the test dataset by taking the difference between the predictions on \(\inputs\), \(\pred = f(\inputs)\) and \(\outputs\). We plot the error, \(\error_j = \outputs_j - \pred_j\), for each output quantity in Figure \ref{fig:error}.
+\begin{table}
+    \centering
+    \caption{Our choice of ANN hyperparameters.}
+    \input{tables/ann}
+\end{table}
+
+We evaluated the emulator on the testing dataset by taking the difference between the predictions on \(\vec\inputs\), \(\vec\pred = f_\mathsf{W}(\vec\inputs)\) and \(\vec\outputs\). We plot the error, \(\vec\error_i = \vec\outputs_i - \vec\pred_i\), for each output quantity in Figure \ref{fig:error}. We found the median prediction error to be about \(0.1\), \(-0.02\), \(-0.06\), and \(0.04\) per cent in \(t\), \(\teff\), \(R\), and \(\Delta\nu\) respectively. Of the predictions, 68 per cent had error less than \(\pm 0.5\) per cent in \(t\), \(\pm 0.2\) per cent in \(\teff\), \(\pm 0.4\) per cent in \(R\), and \(\pm 0.5\) per cent in \(\Delta\nu\).
 
 \begin{figure}
     \centering
     \includegraphics[width=1.0\linewidth]{figures/error.png}
-    \caption{The error \(\vec\error = \outputs - \pred\) on the emulator outputs evaluated on the test dataset.}
+    \caption{The error \(\vec\error_i = \vec\outputs_i - \vec\pred_i\) of the emulator predictions evaluated on the test dataset. TODO: replace with plot without data cut.}
     \label{fig:error}
 \end{figure}
 
@@ -213,34 +211,34 @@ We evaluated the emulator on the test dataset by taking the difference between t
 
 %
 \begin{equation}
-    p(\vec \theta_i, \vec \phi \mid \obs_i) \propto p(\obs_i \mid \vec \theta_i) \, p(\vec\theta_i \mid \vec\phi) \, p(\vec\phi),
+    p(\vec \theta_i, \vec \phi \mid \vec\obs_i) \propto p(\vec\obs_i \mid \vec \theta_i) \, p(\vec\theta_i \mid \vec\phi) \, p(\vec\phi),
 \end{equation}
 %
 
 \subsubsection{Likelihood}
 
-We approximate the emulator error (\(\delta\)) across the test dataset with a multivariate student's t-distribution, \(\tdist(\delta \mid \nu_\delta, \vec\mu_\delta, \mat\Sigma_\delta)\). This can be decomposed into a multivariate normal distribution with its covariance scaled by a gamma-distributed scale parameter \(\sigma^{-2}\).
+We approximate the emulator error (\(\vec\delta\)) across the test dataset with a multivariate student's t-distribution, \(\tdist(\delta \mid \nu_\delta, \vec\mu_\delta, \mat\Sigma_\delta)\). This can be decomposed into a multivariate normal distribution with its covariance scaled by a gamma-distributed scale parameter \(\sigma^{-2}\).
 %
 \begin{equation}
-    p(\error_i \mid \nu_\delta, \vec\mu_\delta, \mat\Sigma_\delta) = \gammadist(\sigma_i^{-2} \mid \frac{\nu_\delta}{2}, \frac{\nu_\delta}{2}) \, \normaldist(\error_i \mid \vec\mu_\delta, \sigma_i^2 \mat\Sigma_\delta),
+    p(\vec\error_i \mid \nu_\delta, \vec\mu_\delta, \mat\Sigma_\delta) = \gammadist(\sigma_i^{-2} \mid \frac{\nu_\delta}{2}, \frac{\nu_\delta}{2}) \, \normaldist(\vec\error_i \mid \vec\mu_\delta, \sigma_i^2 \mat\Sigma_\delta),
 \end{equation}
 %
 We propagate this error to our model likelihood,
 %
 \begin{equation}
-    p(\obs_i \mid \vec\theta_i) = \normaldist(\obs_i \mid \vec\mu_i, \mat\Sigma_i)
+    p(\vec\obs_i \mid \vec\theta_i) = \normaldist(\vec\obs_i \mid \vec\mu_i, \mat\Sigma_i)
 \end{equation}
 %
 where the observable quantities are a linear transformation of the emulator outputs,
 %
 \begin{align}
-    \vec\mu_i &= \mat A \, (\pred_i + \vec\mu_\delta) + \vec b\\
+    \vec\mu_i &= \mat A \, (\vec\pred_i + \vec\mu_\delta) + \vec b\\
     \mat\Sigma_i &= \sigma_i^2 \, \mat{A} \, \mat{\Sigma}_\delta \, \mat{A}^{\transpose} + \sigma_{y,i}^2 \, \mat{I} \label{eq:covariance}
 \end{align}
 %
 and \(\mat A\) is a matrix converting the emulator output to observed quantities.
 
-In this work, we consider observing \(\teff[i]\), \(L_i\), and \(\Delta\nu\) with uncertainties of 2 per cent, 2 per cent, and 1 per cent respectively. In other words, we assume the likelihood to be normally distributed centred on the observed values and scaled by their uncertainties. However, the emulator outputs logarithmic quantities, making the transformation from \(\pred_i\) to observables non-linear. Since the observation noise is small, the logarithm of the observed quantities is also approximately normally distributed. Therefore, we transform the observables and their standard deviations to logarithmic space and continue. In other words, we observe \(\obs_i = [\log\teff[i], \log L_i, \log\Delta\nu_i]\) with uncertainty \(\sigma_{y, i} \approx [0.02, 0.02, 0.01] / \ln(10)\).
+In this work, we consider observing \(\teff[i]\), \(L_i\), and \(\Delta\nu\) with uncertainties of 2 per cent, 2 per cent, and 1 per cent respectively. In other words, we assume the likelihood to be normally distributed centred on the observed values and scaled by their uncertainties. However, the emulator outputs logarithmic quantities, making the transformation from \(\pred_i\) to observables non-linear. Since the observation noise is small, the logarithm of the observed quantities is also approximately normally distributed. Therefore, we transform the observables and their standard deviations to logarithmic space and continue. In other words, we observe \(\vec\obs_i = [\log\teff[i], \log L_i, \log\Delta\nu_i]\) with uncertainty \(\vec\sigma_{y, i} \approx [0.02, 0.02, 0.01] / \ln(10)\).
 
 \begin{equation}
     \mat A = 
